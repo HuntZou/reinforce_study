@@ -8,6 +8,25 @@ import itertools
 import time
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
+import collections
+
+
+class Board:
+    def __init__(self, path):
+        self.board = SummaryWriter(path)
+        self.global_steps = collections.defaultdict(int)
+
+    def add_scalar(self, tag, scalar):
+        self.board.add_scalar(tag, scalar, self.global_steps[tag])
+        self.global_steps[tag] += 1
+
+    def add_scalars(self, tag, scalar):
+        self.board.add_scalars(tag, scalar, self.global_steps[tag])
+        self.global_steps[tag] += 1
+
+    def add_scalar_map(self, m: dict, prefix=""):
+        for k, v in m.items():
+            self.add_scalar(f'{prefix}/{k}' if prefix else k, v)
 
 
 def visualize_FlappyBird_train(policy: torch.nn.Module, board: SummaryWriter = None, device=torch.device("cpu")):
@@ -88,7 +107,7 @@ def visualize_CarRacing_train(policy: torch.nn.Module, board, device):
         test_env.close()
 
 
-def visualize_parking_train(policy: torch.nn.Module, board:SummaryWriter, device):
+def visualize_parking_train(policy: torch.nn.Module, board: SummaryWriter, device):
     """
     action为 [速度, 转向]。值域分别为 (-1, 1)，(-1, 1)
     """
@@ -141,6 +160,7 @@ def visualize_pendulum_train(policy: torch.nn.Module, board, device):
                     break
         test_env.close()
 
+
 def visualize_pendulum_train2(policy: torch.nn.Module, board, device):
     with torch.no_grad():
         test_env = gymnasium.make("Pendulum-v1", render_mode="human")
@@ -151,7 +171,7 @@ def visualize_pendulum_train2(policy: torch.nn.Module, board, device):
             rewards = []
             for step in itertools.count():
                 action, _, _ = policy.get_action(torch.Tensor(obs).reshape([1, -1]).to(device))
-                action = action.detach().reshape([1,]).cpu().numpy()
+                action = action.detach().reshape([1, ]).cpu().numpy()
                 obs, reward, terminated, truncated, info = test_env.step(action)
                 rewards.append(reward)
                 # print(f'act: {action}, reward: {reward:.4f}, total reward: {sum(rewards):.4f}')
@@ -163,6 +183,7 @@ def visualize_pendulum_train2(policy: torch.nn.Module, board, device):
                         board.add_scalar('test/steps', step, game_count)
                     break
         test_env.close()
+
 
 def visualize_highway_train(policy: torch.nn.Module, board, device):
     with torch.no_grad():
